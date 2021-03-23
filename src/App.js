@@ -48,7 +48,9 @@ function App() {
     <div>
       <h1>My Hacker Stories</h1>
 
-      <InputWithLabel id="search" value={searchTerm} label="Search" onChange={handleSearch}/>
+      <InputWithLabel id="search" value={searchTerm} onChange={handleSearch}>
+        <strong>Search: </strong>
+      </InputWithLabel>
       <p>Searching for <strong>{searchTerm}</strong></p>
 
       <hr />
@@ -59,10 +61,10 @@ function App() {
 }
 
 
-const InputWithLabel = ({id, value, type='text', label, onChange}) => {
+const InputWithLabel = ({id, value, type='text', onChange, children}) => {
   return (
     <>
-      <label htmlFor={id}>{label}: </label>
+      <label htmlFor={id}>{children}</label>
       <input id={id} type={type} value={value} onChange={onChange}/>
     </>
   );
