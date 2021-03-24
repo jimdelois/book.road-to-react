@@ -3,7 +3,7 @@ import React from 'react';
 import './App.css';
 
 function App() {
-  const stories = [
+  const initialStories = [
     {
       title: 'React',
       url: 'https://reactjs.org/',
@@ -22,6 +22,13 @@ function App() {
     }
   ];
 
+  const getAsyncStories = () => {
+    return new Promise(resolve => setTimeout(
+        ()  => resolve({ data: { stories: initialStories } }),
+      2500
+    ));
+  }
+
   const useSemiPersistedState = (key, initialValue) => {
     const [value, setValue] = React.useState(
       localStorage.getItem(key) || initialValue
@@ -29,15 +36,37 @@ function App() {
 
     React.useEffect(() => {
       localStorage.setItem(key, value);
-    }, [value]);
+    }, [key, value]);
 
     return [value, setValue];
   };
 
   const [searchTerm, setSearchTerm] = useSemiPersistedState('search', '');
+  const [stories, setStories] = React.useState([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isError, setIsError] = React.useState(false);
+
+  // This is the "race-condition-safe" version of using async/await in useEffect.
+  React.useEffect(() => {
+    const fn = async () => {
+      try {
+        const res = await getAsyncStories();
+        setStories(res.data.stories);
+        setIsLoading(false);
+      } catch(e) {
+        setIsError(true);
+      }
+    };
+    fn();
+  }, []);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value)
+  };
+
+  const handleRemoveStory = (story) => {
+    const newStories = stories.filter(s => story.objectId !== s.objectId);
+    setStories(newStories);
   };
 
   const searchedStories = stories.filter(
@@ -55,7 +84,12 @@ function App() {
 
       <hr />
 
-      <List list={searchedStories}/>
+      {isError && <p>Something went wrong, please refresh the page.</p>}
+      {isLoading ? (
+        <p>Loading ...</p>
+      ) : (
+        <List list={searchedStories} onRemoveItem={handleRemoveStory}/>
+      )}
     </div>
   );
 }
@@ -70,17 +104,21 @@ const InputWithLabel = ({id, value, type='text', onChange, children}) => {
   );
 }
 
-const List = ({list}) => {
-  return list.map(({objectId, ...item}) => <Item key={objectId} {...item} />);
+const List = ({list, onRemoveItem}) => {
+  // Interesting use of rest, and then spread to pass in items by name (which I later reverted
+  // so that I could have access to the full item object inside the Item component
+  // return list.map(({objectId, ...item}) => <Item key={objectId} {...item} />);
+  return list.map(item => <Item key={item.objectId} item={item} onRemoveItem={onRemoveItem} />);
 }
 
-const Item = ({url, title, author, num_comments, points}) => {
+const Item = ({item, onRemoveItem}) => {
   return (
     <div>
-      <span><a href={url}>{title}</a></span>
-      <span>{author}</span>
-      <span>{num_comments}</span>
-      <span>{points}</span>
+      <span><a href={item.url}>{item.title}</a></span>
+      <span>{item.author}</span>
+      <span>{item.num_comments}</span>
+      <span>{item.points}</span>
+      <button type="button" onClick={() => onRemoveItem(item)}>Remove</button>
     </div>
   );
 }
