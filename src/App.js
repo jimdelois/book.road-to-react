@@ -48,7 +48,7 @@ function App() {
 
   // This is the "race-condition-safe" version of using async/await in useEffect.
   React.useEffect(() => {
-    const fn = async () => {
+    (async () => {
       try {
         const res = await getAsyncStories();
         setStories(res.data.stories);
@@ -56,8 +56,7 @@ function App() {
       } catch(e) {
         setIsError(true);
       }
-    };
-    fn();
+    })();
   }, []);
 
   const handleSearch = (e) => {
